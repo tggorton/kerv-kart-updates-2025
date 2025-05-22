@@ -16,8 +16,8 @@ import {
   Button,
   Stack,
   SelectChangeEvent,
-  InputLabel, 
-  FormControl, 
+  InputLabel,
+  FormControl,
   OutlinedInput,
   FormHelperText
 } from '@mui/material';
@@ -31,12 +31,14 @@ const ConfigurationPanel: React.FC = () => {
   const [isMultiRetailer, setIsMultiRetailer] = useState(false);
   const [selectedRetailers, setSelectedRetailers] = useState<string[]>([]);
   const [showProductRetailerLogo, setShowProductRetailerLogo] = useState(true);
+  const [retailerFormControlKey, setRetailerFormControlKey] = useState(0);
 
   const handleEcommerceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsEcommerce(event.target.checked);
     if (!event.target.checked) {
       setIsMultiRetailer(false);
       setSelectedRetailers([]);
+      setRetailerFormControlKey(prevKey => prevKey + 1);
     }
   };
 
@@ -71,7 +73,12 @@ const ConfigurationPanel: React.FC = () => {
   };
   
   const handleDeleteRetailer = (retailerToDelete: string) => () => {
-    setSelectedRetailers((chips) => chips.filter((chip) => chip !== retailerToDelete));
+    const nextSelectedRetailers = selectedRetailers.filter(chip => chip !== retailerToDelete);
+    setSelectedRetailers(nextSelectedRetailers);
+
+    if (!isMultiRetailer || (isMultiRetailer && nextSelectedRetailers.length === 0)) {
+      setRetailerFormControlKey(prevKey => prevKey + 1);
+    }
   };
 
   const selectValue = isMultiRetailer ? selectedRetailers : (selectedRetailers[0] || '');
@@ -107,8 +114,13 @@ const ConfigurationPanel: React.FC = () => {
                 </RadioGroup>
               </Box>
 
-              <FormControl fullWidth>
-                <InputLabel id="retailer-select-label" sx={{color: 'text.secondary'}}>Retailer</InputLabel>
+              <FormControl fullWidth key={retailerFormControlKey}>
+                <InputLabel 
+                  id="retailer-select-label" 
+                  sx={{color: 'text.secondary'}} 
+                >
+                  Retailer
+                </InputLabel>
                 <Select<string | string[]>
                   labelId="retailer-select-label"
                   multiple={isMultiRetailer}
@@ -117,9 +129,11 @@ const ConfigurationPanel: React.FC = () => {
                   input={<OutlinedInput label="Retailer" />}
                   renderValue={(selectedValue) => {
                     const itemsToRender = typeof selectedValue === 'string' ? (selectedValue ? [selectedValue] : []) : selectedValue;
-                    if (itemsToRender.length === 0 && !isMultiRetailer) {
-                        // Optionally, return a placeholder string for single select when empty if InputLabel is not enough
-                        // return <Typography sx={{ color: 'text.secondary', fontStyle:'italic'}}>Select Retailer</Typography>;
+                    if (!isMultiRetailer && itemsToRender.length === 0) {
+                      return null;
+                    }
+                    if (isMultiRetailer && itemsToRender.length === 0) {
+                        return null;
                     }
                     return (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
@@ -127,16 +141,14 @@ const ConfigurationPanel: React.FC = () => {
                             <Chip 
                                 key={name} 
                                 label={name}
-                                onDelete={isMultiRetailer && itemsToRender.length > 0 ? handleDeleteRetailer(name) : undefined}
+                                onDelete={handleDeleteRetailer(name)}
                                 sx={{ 
                                     '& .MuiChip-deleteIcon': {
-                                        display: isMultiRetailer ? 'inline-flex' : 'none',
+                                        display: 'inline-flex',
                                     }
                                 }}
                                 onMouseDown={(event) => {
-                                    if (isMultiRetailer) {
-                                        event.stopPropagation();
-                                    }
+                                    event.stopPropagation();
                                 }}
                             />
                         ))}
